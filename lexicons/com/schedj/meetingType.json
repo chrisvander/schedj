@@ -1,0 +1,38 @@
+{
+  "defs": {
+    "main": {
+      "description": "TODO: describe purpose of this schema",
+      "key": "any",
+      "record": {
+        "properties": {
+          "avatar": {
+            "accept": ["image/png", "image/jpeg"],
+            "maxSize": 2000000,
+            "type": "blob"
+          },
+          "createdAt": {
+            "format": "datetime",
+            "type": "string"
+          },
+          "description": {
+            "maxGraphemes": 300,
+            "maxLength": 3000,
+            "type": "string"
+          },
+          "name": {
+            "description": "TODO: title name of record; can not be empty",
+            "maxGraphemes": 64,
+            "maxLength": 640,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["name", "createdAt"],
+        "type": "object"
+      },
+      "type": "record"
+    }
+  },
+  "id": "com.schedj.meetingType",
+  "lexicon": 1
+}

@@ -1,0 +1,33 @@
+{
+  "defs": {
+    "main": {
+      "description": "TODO: basic API endpoint",
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "properties": {
+            "number": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "number"
+          ],
+          "type": "object"
+        }
+      },
+      "parameters": {
+        "properties": {
+          "maximum": {
+            "description": "maximum size of response",
+            "type": "integer"
+          }
+        },
+        "type": "params"
+      },
+      "type": "query"
+    }
+  },
+  "id": "com.schedj.getAvailability",
+  "lexicon": 1
+}

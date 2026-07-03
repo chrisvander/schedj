@@ -1,0 +1,33 @@
+{
+  "defs": {
+    "main": {
+      "description": "TODO: description of this API endpoint",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "properties": {
+            "subject": {
+              "format": "at-identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "subject"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "properties": {},
+          "required": [],
+          "type": "object"
+        }
+      },
+      "type": "procedure"
+    }
+  },
+  "id": "com.schedj.book",
+  "lexicon": 1
+}
