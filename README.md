@@ -2,6 +2,16 @@
 
 An AT Protocol based app for scheduling events.
 
+## Dependencies
+
+Esquema. Install below with:
+
+```bash
+cargo install esquema-cli --locked --git https://github.com/fatfingers23/esquema.git
+```
+
+or with `just install-esquema`.
+
 ## Backend
 
 Data needs to be stored on a backend for Schedj to work properly - it cannot be entirely on-protocol due to the sensitive nature of connecting to calendars and exposing scheduled meetings. This may change with permissioned data.

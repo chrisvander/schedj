@@ -1,33 +1,127 @@
 {
+  "lexicon": 1,
+  "id": "com.schedj.book",
   "defs": {
     "main": {
-      "description": "TODO: description of this API endpoint",
+      "type": "procedure",
+      "description": "Books an available time on an actor's connected calendar. Attendee details and booking results are private backend data and are not written to the ATProto repository.",
       "input": {
         "encoding": "application/json",
         "schema": {
-          "properties": {
-            "subject": {
-              "format": "at-identifier",
-              "type": "string"
-            }
-          },
+          "type": "object",
           "required": [
-            "subject"
+            "actor",
+            "start",
+            "end",
+            "attendeeName",
+            "attendeeEmail",
+            "idempotencyKey"
           ],
-          "type": "object"
+          "properties": {
+            "actor": {
+              "type": "string",
+              "format": "at-identifier",
+              "description": "DID or handle of the actor whose calendar is being booked."
+            },
+            "start": {
+              "type": "string",
+              "format": "datetime",
+              "description": "Inclusive start of the requested booking."
+            },
+            "end": {
+              "type": "string",
+              "format": "datetime",
+              "description": "Exclusive end of the requested booking."
+            },
+            "attendeeName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "maxGraphemes": 100,
+              "description": "Name displayed to the calendar owner."
+            },
+            "attendeeEmail": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 320,
+              "description": "Email address used for the calendar invitation and booking updates."
+            },
+            "attendeeTimeZone": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Optional IANA timezone name for attendee-facing confirmations."
+            },
+            "message": {
+              "type": "string",
+              "maxLength": 2000,
+              "maxGraphemes": 1000,
+              "description": "Optional private note from the attendee to the calendar owner."
+            },
+            "idempotencyKey": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "description": "Client-generated key used to safely retry this booking request."
+            }
+          }
         }
       },
       "output": {
         "encoding": "application/json",
         "schema": {
-          "properties": {},
-          "required": [],
-          "type": "object"
+          "type": "object",
+          "required": [
+            "bookingId",
+            "status",
+            "start",
+            "end",
+            "createdAt"
+          ],
+          "properties": {
+            "bookingId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Opaque backend identifier for the booking."
+            },
+            "status": {
+              "type": "string",
+              "knownValues": [
+                "pending",
+                "confirmed"
+              ],
+              "description": "Current state of the booking."
+            },
+            "start": {
+              "type": "string",
+              "format": "datetime"
+            },
+            "end": {
+              "type": "string",
+              "format": "datetime"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "datetime"
+            }
+          }
         }
       },
-      "type": "procedure"
+      "errors": [
+        {
+          "name": "InvalidRequest",
+          "description": "The requested range or attendee details are invalid."
+        },
+        {
+          "name": "SlotUnavailable",
+          "description": "The requested time is no longer available."
+        },
+        {
+          "name": "CalendarUnavailable",
+          "description": "The actor's calendar connection is temporarily unavailable."
+        }
+      ]
     }
-  },
-  "id": "com.schedj.book",
-  "lexicon": 1
+  }
 }

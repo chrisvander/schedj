@@ -1,33 +1,96 @@
 {
+  "lexicon": 1,
+  "id": "com.schedj.getAvailability",
   "defs": {
     "main": {
-      "description": "TODO: basic API endpoint",
+      "type": "query",
+      "description": "Returns bookable slots for an actor within a bounded time range.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "actor",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "actor": {
+            "type": "string",
+            "format": "at-identifier",
+            "description": "DID or handle of the actor whose availability is requested."
+          },
+          "start": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Inclusive start of the requested range."
+          },
+          "end": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Exclusive end of the requested range."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440,
+            "description": "Requested slot duration. The server default is used when omitted."
+          }
+        }
+      },
       "output": {
         "encoding": "application/json",
         "schema": {
-          "properties": {
-            "number": {
-              "type": "integer"
-            }
-          },
+          "type": "object",
           "required": [
-            "number"
+            "slots",
+            "generatedAt"
           ],
-          "type": "object"
+          "properties": {
+            "slots": {
+              "type": "array",
+              "maxLength": 1000,
+              "items": {
+                "type": "ref",
+                "ref": "#availabilitySlot"
+              }
+            },
+            "generatedAt": {
+              "type": "string",
+              "format": "datetime",
+              "description": "Time at which the availability result was calculated."
+            }
+          }
         }
       },
-      "parameters": {
-        "properties": {
-          "maximum": {
-            "description": "maximum size of response",
-            "type": "integer"
-          }
+      "errors": [
+        {
+          "name": "InvalidRequest",
+          "description": "The requested range or duration is invalid."
         },
-        "type": "params"
-      },
-      "type": "query"
+        {
+          "name": "CalendarUnavailable",
+          "description": "The actor's calendar connection is temporarily unavailable."
+        }
+      ]
+    },
+    "availabilitySlot": {
+      "type": "object",
+      "description": "A half-open time range that may be submitted to com.schedj.book.",
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "datetime",
+          "description": "Inclusive start of the available slot."
+        },
+        "end": {
+          "type": "string",
+          "format": "datetime",
+          "description": "Exclusive end of the available slot."
+        }
+      }
     }
-  },
-  "id": "com.schedj.getAvailability",
-  "lexicon": 1
+  }
 }

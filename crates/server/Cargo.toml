@@ -7,3 +7,4 @@ edition = "2024"
 axum = "0.8.9"
 chrono = "0.4.45"
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
+lexicons = { path = "../lexicons" }

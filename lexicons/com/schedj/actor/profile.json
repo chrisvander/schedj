@@ -1,38 +1,60 @@
 {
+  "lexicon": 1,
+  "id": "com.schedj.actor.profile",
   "defs": {
     "main": {
-      "description": "TODO: describe purpose of this schema",
-      "key": "any",
+      "type": "record",
+      "description": "Public scheduling profile for a Schedj user. Calendar credentials and private booking data are never stored in this record.",
+      "key": "literal:self",
       "record": {
+        "type": "object",
+        "required": [
+          "displayName",
+          "timeZone",
+          "bookingEnabled",
+          "createdAt"
+        ],
         "properties": {
-          "avatar": {
-            "accept": ["image/png", "image/jpeg"],
-            "maxSize": 2000000,
-            "type": "blob"
-          },
-          "createdAt": {
-            "format": "datetime",
-            "type": "string"
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 640,
+            "maxGraphemes": 64,
+            "description": "Name shown on the actor's public scheduling page."
           },
           "description": {
-            "maxGraphemes": 300,
+            "type": "string",
             "maxLength": 3000,
-            "type": "string"
+            "maxGraphemes": 300,
+            "description": "Short public introduction or scheduling guidance."
           },
-          "name": {
-            "description": "TODO: title name of record; can not be empty",
-            "maxGraphemes": 64,
-            "maxLength": 640,
+          "avatar": {
+            "type": "blob",
+            "accept": [
+              "image/png",
+              "image/jpeg",
+              "image/webp"
+            ],
+            "maxSize": 2000000,
+            "description": "Public profile image."
+          },
+          "timeZone": {
+            "type": "string",
             "minLength": 1,
-            "type": "string"
+            "maxLength": 100,
+            "description": "IANA timezone name used to evaluate the actor's local availability rules."
+          },
+          "bookingEnabled": {
+            "type": "boolean",
+            "description": "Whether the actor is currently accepting public bookings."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Time at which this profile record was created."
           }
-        },
-        "required": ["name", "createdAt"],
-        "type": "object"
-      },
-      "type": "record"
+        }
+      }
     }
-  },
-  "id": "com.schedj.actor.profile",
-  "lexicon": 1
+  }
 }
