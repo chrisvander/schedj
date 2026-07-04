@@ -4,9 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+atrium-api = "0.25.8"
 axum = "0.8.9"
+calendar-provider = { path = "../calendar-provider" }
 chrono = "0.4.45"
-database = { path = "../database" }
 dotenvy = "0.15.7"
 lexicons = { path = "../lexicons" }
+provider-caldav = { path = "../provider-caldav" }
+provider-gcal = { path = "../provider-gcal" }
+provider-msft = { path = "../provider-msft" }
+reqwest = { version = "0.12.24", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1.0.228", features = ["derive"] }
+store = { path = "../store" }
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
