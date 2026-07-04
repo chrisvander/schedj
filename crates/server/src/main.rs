@@ -14,9 +14,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("SCHEDJ_BIND_ADDR").unwrap_or_else(|_| "127.0.0.1:3000".to_string());
     let listener = tokio::net::TcpListener::bind(&bind_address).await?;
     println!(
-        "schedj listening on http://{bind_address} for actor {} ({})",
-        state.actor(),
-        state.provider_name()
+        "schedj listening on http://{bind_address} for actor {}",
+        state.actor()
     );
     axum::serve(listener, router(state)).await?;
     Ok(())

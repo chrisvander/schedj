@@ -1,6 +1,25 @@
 dev:
     cargo watch -x run
 
+demo:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    podman compose up -d postgres
+    for attempt in {1..30}; do
+        if podman compose exec -T postgres pg_isready -U schedj -d schedj >/dev/null; then
+            break
+        fi
+        if [[ "$attempt" == 30 ]]; then
+            echo "PostgreSQL did not become ready within 30 seconds" >&2
+            exit 1
+        fi
+        sleep 1
+    done
+    exec env DATABASE_URL=postgres://schedj:schedj@localhost:5432/schedj SCHEDJ_PROVIDER=demo cargo run -p schedj
+
+demo-down:
+    podman compose down
+
 install-esquema:
     cargo install esquema-cli --locked --git https://github.com/fatfingers23/esquema.git
 

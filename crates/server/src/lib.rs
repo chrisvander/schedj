@@ -1,5 +1,3 @@
-use std::{env, sync::Arc, time::Duration as StdDuration};
-
 use axum::{
     Json, Router,
     extract::{Query, State, rejection::QueryRejection},
@@ -14,34 +12,21 @@ use provider_caldav::CalDavProvider;
 use provider_gcal::GoogleCalendarProvider;
 use provider_msft::MicrosoftCalendarProvider;
 use serde::{Deserialize, Serialize};
+use std::{env, time::Duration as StdDuration};
 use store::{BeginBooking, NewBooking, Store};
 
-const DEFAULT_ACTOR: &str = "demo.schedj.test";
 const DEFAULT_SLOT_MINUTES: i64 = 30;
 const MAX_RANGE_DAYS: i64 = 31;
 
 #[derive(Clone)]
 pub struct AppState {
     store: Store,
-    provider: Arc<Provider>,
-    actor: Arc<str>,
+    provider: Provider,
 }
 
 impl AppState {
-    pub fn new(store: Store, provider: Provider, actor: impl Into<Arc<str>>) -> Self {
-        Self {
-            store,
-            provider: Arc::new(provider),
-            actor: actor.into(),
-        }
-    }
-
-    pub fn actor(&self) -> &str {
-        &self.actor
-    }
-
-    pub fn provider_name(&self) -> &'static str {
-        self.provider.name()
+    pub fn new(store: Store, provider: Provider) -> Self {
+        Self { store, provider }
     }
 }
 
@@ -62,7 +47,6 @@ enum ProviderFailure {
 impl Provider {
     pub fn from_env() -> Result<(Self, String), String> {
         let name = env::var("SCHEDJ_PROVIDER").unwrap_or_else(|_| "demo".to_string());
-        let actor = env::var("SCHEDJ_ACTOR").unwrap_or_else(|_| DEFAULT_ACTOR.to_string());
         let client = reqwest::Client::builder()
             .timeout(StdDuration::from_secs(15))
             .build()
@@ -102,15 +86,6 @@ impl Provider {
             }
         };
         Ok((provider, actor))
-    }
-
-    fn name(&self) -> &'static str {
-        match self {
-            Self::Demo => "demo",
-            Self::Google(_) => "google",
-            Self::Microsoft(_) => "microsoft",
-            Self::CalDav(_) => "caldav",
-        }
     }
 
     async fn busy_between(
@@ -192,7 +167,7 @@ async fn get_availability(
     query: Result<Query<AvailabilityQuery>, QueryRejection>,
 ) -> Result<Json<get_availability::Output>, ApiError> {
     let Query(query) = query.map_err(|_| ApiError::invalid("invalid query parameters"))?;
-    let parameters = query.into_lexicon()?;
+    let parameters: get_availability::Parameters = query.try_into()?;
     let actor = parameters.actor.as_ref();
     ensure_actor(actor, &state)?;
     let from = parse_datetime(&parameters.start)?;
@@ -246,36 +221,32 @@ struct AvailabilityQuery {
     duration_minutes: Option<String>,
 }
 
-impl AvailabilityQuery {
-    fn into_lexicon(self) -> Result<get_availability::Parameters, ApiError> {
-        let actor = self
-            .actor
-            .parse()
-            .map_err(|_| ApiError::invalid("actor is not an AT identifier"))?;
-        let start = self
-            .start
-            .parse()
-            .map_err(|_| ApiError::invalid("start is not a datetime"))?;
-        let end = self
-            .end
-            .parse()
-            .map_err(|_| ApiError::invalid("end is not a datetime"))?;
-        let duration_minutes = self
-            .duration_minutes
-            .map(|value| {
-                value
-                    .parse::<u16>()
-                    .map_err(|_| ApiError::invalid("durationMinutes is invalid"))?
-                    .try_into()
-                    .map_err(|_| ApiError::invalid("durationMinutes must be 1-1440"))
-            })
-            .transpose()?;
-
+impl TryInto<get_availability::Parameters> for AvailabilityQuery {
+    type Error = ApiError;
+    fn try_into(self) -> Result<get_availability::Parameters, Self::Error> {
         Ok(get_availability::ParametersData {
-            actor,
-            start,
-            end,
-            duration_minutes,
+            actor: self
+                .actor
+                .parse()
+                .map_err(|_| ApiError::invalid("actor is not an AT identifier"))?,
+            start: self
+                .start
+                .parse()
+                .map_err(|_| ApiError::invalid("start is not a datetime"))?,
+            end: self
+                .end
+                .parse()
+                .map_err(|_| ApiError::invalid("end is not a datetime"))?,
+            duration_minutes: self
+                .duration_minutes
+                .map(|value| {
+                    value
+                        .parse::<u16>()
+                        .map_err(|_| ApiError::invalid("durationMinutes is invalid"))?
+                        .try_into()
+                        .map_err(|_| ApiError::invalid("durationMinutes must be 1-1440"))
+                })
+                .transpose()?,
         }
         .into())
     }
@@ -498,13 +469,13 @@ mod tests {
 
     #[test]
     fn query_adapter_parses_lexicon_bounded_integer() {
-        let parameters = AvailabilityQuery {
-            actor: DEFAULT_ACTOR.to_string(),
+        let parameters: get_availability::Parameters = AvailabilityQuery {
+            actor: "com.schedj.test".to_string(),
             start: "2026-07-04T09:00:00Z".to_string(),
             end: "2026-07-04T10:00:00Z".to_string(),
             duration_minutes: Some("30".to_string()),
         }
-        .into_lexicon()
+        .try_into()
         .unwrap();
 
         assert_eq!(parameters.duration_minutes.map(u16::from), Some(30));
