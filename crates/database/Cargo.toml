@@ -1,0 +1,11 @@
+[package]
+name = "database"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { version = "0.4.45", features = ["serde"] }
+diesel = { version = "2.3.10", features = ["postgres", "chrono", "uuid"] }
+diesel-async = { version = "0.9.2", features = ["postgres", "bb8"] }
+thiserror = "2.0.18"
+uuid = { version = "1.23.4", features = ["v7", "serde"] }
