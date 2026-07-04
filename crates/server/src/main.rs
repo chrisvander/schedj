@@ -1,7 +1,5 @@
 use axum::{Router, routing::get};
 
-mod service;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();

@@ -72,16 +72,18 @@ pub fn availability_slots(
         .collect();
     busy.sort_by_key(|(start, _)| *start);
 
-    let mut merged: Vec<(DateTime<Utc>, DateTime<Utc>)> = Vec::new();
-    for (start, end) in busy {
-        if let Some((_, last_end)) = merged.last_mut() {
-            if start <= *last_end {
+    let merged = busy
+        .into_iter()
+        .fold(Vec::new(), |mut merged, (start, end)| {
+            if let Some((_, last_end)) = merged.last_mut()
+                && start <= *last_end
+            {
                 *last_end = (*last_end).max(end);
-                continue;
+                return merged;
             }
-        }
-        merged.push((start, end));
-    }
+            merged.push((start, end));
+            merged
+        });
 
     let slot_duration = Duration::minutes(slot_minutes.max(1));
     let mut slots = Vec::new();
