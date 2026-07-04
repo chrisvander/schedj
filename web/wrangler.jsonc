@@ -1,0 +1,19 @@
+{
+  "compatibility_date": "2026-03-10",
+  "compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
+  "name": "schedj",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "routes": [
+    {
+      "pattern": "schedj.com",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
