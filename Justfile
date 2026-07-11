@@ -15,9 +15,12 @@ demo:
         fi
         sleep 1
     done
-    exec env DATABASE_URL=postgres://schedj:schedj@localhost:5432/schedj SCHEDJ_PROVIDER=demo cargo run -p schedj
+    exec env DATABASE_URL=postgres://schedj:schedj@localhost:5432/schedj cargo run -p schedj
 
-demo-down:
+db-up:
+    podman compose up -d postgres
+
+db-down:
     podman compose down
 
 install-esquema:

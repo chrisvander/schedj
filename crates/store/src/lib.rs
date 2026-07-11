@@ -5,7 +5,7 @@
 
 use chrono::{DateTime, Utc};
 use database::{
-    Pool,
+    PgPool, Pool,
     schema::{bookings, users},
 };
 use diesel::prelude::*;
@@ -111,15 +111,13 @@ impl From<BookingRow> for Booking {
 impl Store {
     /// Connect to PostgreSQL and apply embedded migrations.
     pub async fn connect(database_url: impl Into<String>) -> Result<Self, Error> {
-        let pool = database::create_pool(database_url).await?;
-        {
-            let connection = pool.get_owned().await?;
-            let mut harness = AsyncMigrationHarness::new(connection);
-            harness
-                .run_pending_migrations(MIGRATIONS)
-                .map_err(|error| Error::Migration(error.to_string()))?;
-        }
-        Ok(Self { pool })
+        Ok(Self {
+            pool: database::create_pool(database_url).await?,
+        })
+    }
+
+    pub async fn get(&self) -> PgPool {
+        self.pool.get()
     }
 
     pub async fn is_ready(&self) -> Result<(), Error> {

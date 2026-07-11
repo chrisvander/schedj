@@ -3,14 +3,14 @@ use diesel_async::{
     pooled_connection::{AsyncDieselConnectionManager, PoolError, bb8},
 };
 
+pub mod models;
 pub mod schema;
 
-pub type Pool = bb8::Pool<AsyncPgConnection>;
+pub type PgConn = AsyncPgConnection;
+pub type PgPooledConn<'a> = bb8::PooledConnection<'a, PgConn>;
+pub type PgPool = bb8::Pool<PgConn>;
 
-pub async fn create_pool(database_url: impl Into<String>) -> Result<Pool, PoolError> {
-    Pool::builder()
-        .build(AsyncDieselConnectionManager::<AsyncPgConnection>::new(
-            database_url,
-        ))
-        .await
+pub async fn create_pool(database_url: impl Into<String>) -> Result<PgPool, PoolError> {
+    let conn_manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
+    PgPool::builder().build(conn_manager).await
 }

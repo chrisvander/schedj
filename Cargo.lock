@@ -239,6 +239,7 @@ checksum = "8ae3f5d315924270530207e2a68396c3cc547f6dca3fbdca317cfb1a51edb593"
 name = "calendar-provider"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "chrono",
 ]
 
@@ -1431,40 +1432,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "provider-caldav"
-version = "0.1.0"
-dependencies = [
- "calendar-provider",
- "chrono",
- "reqwest",
- "thiserror 2.0.18",
-]
-
-[[package]]
-name = "provider-gcal"
-version = "0.1.0"
-dependencies = [
- "calendar-provider",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
-]
-
-[[package]]
-name = "provider-msft"
-version = "0.1.0"
-dependencies = [
- "calendar-provider",
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
-]
-
-[[package]]
 name = "quinn"
 version = "0.11.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1739,12 +1706,10 @@ dependencies = [
  "chrono",
  "dotenvy",
  "lexicons",
- "provider-caldav",
- "provider-gcal",
- "provider-msft",
  "reqwest",
  "serde",
  "store",
+ "thiserror 2.0.18",
  "tokio",
 ]
 

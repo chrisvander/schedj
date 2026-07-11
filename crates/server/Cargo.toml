@@ -10,10 +10,8 @@ calendar-provider = { path = "../calendar-provider" }
 chrono = "0.4.45"
 dotenvy = "0.15.7"
 lexicons = { path = "../lexicons" }
-provider-caldav = { path = "../provider-caldav" }
-provider-gcal = { path = "../provider-gcal" }
-provider-msft = { path = "../provider-msft" }
 reqwest = { version = "0.12.24", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0.228", features = ["derive"] }
 store = { path = "../store" }
+thiserror = "2.0.18"
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }

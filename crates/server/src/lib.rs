@@ -8,12 +8,10 @@ use axum::{
 use calendar_provider::{BookingRequest as ProviderBookingRequest, availability_slots};
 use chrono::{DateTime, Duration, Utc};
 use lexicons::com::schedj::{book, get_availability};
-use provider_caldav::CalDavProvider;
-use provider_gcal::GoogleCalendarProvider;
-use provider_msft::MicrosoftCalendarProvider;
 use serde::{Deserialize, Serialize};
 use std::{env, time::Duration as StdDuration};
 use store::{BeginBooking, NewBooking, Store};
+use thiserror::Error;
 
 const DEFAULT_SLOT_MINUTES: i64 = 30;
 const MAX_RANGE_DAYS: i64 = 31;
@@ -166,45 +164,7 @@ async fn get_availability(
     State(state): State<AppState>,
     query: Result<Query<AvailabilityQuery>, QueryRejection>,
 ) -> Result<Json<get_availability::Output>, ApiError> {
-    let Query(query) = query.map_err(|_| ApiError::invalid("invalid query parameters"))?;
-    let parameters: get_availability::Parameters = query.try_into()?;
-    let actor = parameters.actor.as_ref();
-    ensure_actor(actor, &state)?;
-    let from = parse_datetime(&parameters.start)?;
-    let to = parse_datetime(&parameters.end)?;
-    validate_range(from, to)?;
-    let slot_minutes = parameters
-        .duration_minutes
-        .map(u16::from)
-        .map(i64::from)
-        .unwrap_or(DEFAULT_SLOT_MINUTES);
-
-    let (provider_busy, stored_busy) = tokio::join!(
-        state.provider.busy_between(from, to),
-        state.store.active_booking_ranges(actor, from, to)
-    );
-    let mut busy = provider_busy.map_err(|_| ApiError::calendar_unavailable())?;
-    busy.extend(stored_busy.map_err(|_| ApiError::calendar_unavailable())?);
-
-    let slots = availability_slots(from, to, &busy, slot_minutes)
-        .slots
-        .into_iter()
-        .take(1000)
-        .map(|slot| {
-            get_availability::AvailabilitySlotData {
-                start: lexicon_datetime(slot.start),
-                end: lexicon_datetime(slot.end),
-            }
-            .into()
-        })
-        .collect();
-    Ok(Json(
-        get_availability::OutputData {
-            slots,
-            generated_at: lexicon_datetime(Utc::now()),
-        }
-        .into(),
-    ))
+    todo!()
 }
 
 /// Query-string adapter for generated Lexicon integer types.
@@ -256,188 +216,22 @@ async fn create_booking(
     State(state): State<AppState>,
     Json(input): Json<book::Input>,
 ) -> Result<Json<book::Output>, ApiError> {
-    let actor = input.actor.as_ref();
-    ensure_actor(actor, &state)?;
-    let from = parse_datetime(&input.start)?;
-    let to = parse_datetime(&input.end)?;
-    validate_range(from, to)?;
-    validate_booking_input(&input)?;
-
-    let reservation = state
-        .store
-        .begin_booking(NewBooking {
-            actor: actor.to_string(),
-            idempotency_key: input.idempotency_key.clone(),
-            starts_at: from,
-            ends_at: to,
-            attendee_name: input.attendee_name.clone(),
-            attendee_email: input.attendee_email.clone(),
-            attendee_time_zone: input.attendee_time_zone.clone(),
-            message: input.message.clone(),
-        })
-        .await
-        .map_err(|_| ApiError::calendar_unavailable())?;
-
-    let pending = match reservation {
-        BeginBooking::SlotUnavailable => return Err(ApiError::slot_unavailable()),
-        BeginBooking::Existing(booking) => {
-            if booking.status == "pending" || booking.status == "confirmed" {
-                return Ok(Json(booking_output(booking)));
-            }
-            return Err(ApiError::calendar_unavailable());
-        }
-        BeginBooking::Created(booking) => booking,
-    };
-
-    if let Err(error) = state.provider.book(from, to).await {
-        let error_name = match error {
-            ProviderFailure::Conflict => "SlotUnavailable",
-            ProviderFailure::Unavailable => "CalendarUnavailable",
-        };
-        state
-            .store
-            .fail_booking(pending.id, error_name)
-            .await
-            .map_err(|_| ApiError::calendar_unavailable())?;
-        return Err(match error {
-            ProviderFailure::Conflict => ApiError::slot_unavailable(),
-            ProviderFailure::Unavailable => ApiError::calendar_unavailable(),
-        });
-    }
-
-    let booking = state
-        .store
-        .confirm_booking(pending.id)
-        .await
-        .map_err(|_| ApiError::calendar_unavailable())?;
-    Ok(Json(booking_output(booking)))
+    todo!()
 }
 
-fn booking_output(booking: store::Booking) -> book::Output {
-    book::OutputData {
-        booking_id: booking.id.to_string(),
-        status: booking.status,
-        start: lexicon_datetime(booking.starts_at),
-        end: lexicon_datetime(booking.ends_at),
-        created_at: lexicon_datetime(booking.created_at),
-    }
-    .into()
-}
-
-fn validate_booking_input(input: &book::Input) -> Result<(), ApiError> {
-    if input.attendee_name.is_empty()
-        || input.attendee_name.len() > 200
-        || input.attendee_name.chars().count() > 100
-    {
-        return Err(ApiError::invalid("attendeeName is invalid"));
-    }
-    if input.attendee_email.len() < 3
-        || input.attendee_email.len() > 320
-        || !input.attendee_email.contains('@')
-    {
-        return Err(ApiError::invalid("attendeeEmail is invalid"));
-    }
-    if !(16..=128).contains(&input.idempotency_key.len()) {
-        return Err(ApiError::invalid("idempotencyKey must be 16-128 bytes"));
-    }
-    if input
-        .attendee_time_zone
-        .as_ref()
-        .is_some_and(|value| value.is_empty() || value.len() > 100)
-    {
-        return Err(ApiError::invalid("attendeeTimeZone is invalid"));
-    }
-    if input
-        .message
-        .as_ref()
-        .is_some_and(|value| value.len() > 2000 || value.chars().count() > 1000)
-    {
-        return Err(ApiError::invalid("message is too long"));
-    }
-    Ok(())
-}
-
-fn ensure_actor(actor: &str, state: &AppState) -> Result<(), ApiError> {
-    if actor == state.actor() {
-        Ok(())
-    } else {
-        Err(ApiError::calendar_unavailable())
-    }
-}
-
-fn parse_datetime(value: &atrium_api::types::string::Datetime) -> Result<DateTime<Utc>, ApiError> {
-    DateTime::parse_from_rfc3339(value.as_str())
-        .map(|value| value.with_timezone(&Utc))
-        .map_err(|_| ApiError::invalid("invalid datetime"))
-}
-
-fn validate_range(from: DateTime<Utc>, to: DateTime<Utc>) -> Result<(), ApiError> {
-    if to <= from {
-        return Err(ApiError::invalid("end must be after start"));
-    }
-    if to - from > Duration::days(MAX_RANGE_DAYS) {
-        return Err(ApiError::invalid("range cannot exceed 31 days"));
-    }
-    Ok(())
-}
-
-fn lexicon_datetime(value: DateTime<Utc>) -> atrium_api::types::string::Datetime {
-    atrium_api::types::string::Datetime::new(value.fixed_offset())
-}
-
-fn required_env(name: &str) -> Result<String, String> {
-    env::var(name).map_err(|_| format!("{name} is required for the selected provider"))
-}
-
-#[derive(Debug)]
-struct ApiError {
-    status: StatusCode,
-    error: &'static str,
-    message: &'static str,
-}
-
-#[derive(Serialize)]
-struct ErrorBody {
-    error: &'static str,
-    message: &'static str,
-}
-
-impl ApiError {
-    fn invalid(message: &'static str) -> Self {
-        Self {
-            status: StatusCode::BAD_REQUEST,
-            error: "InvalidRequest",
-            message,
-        }
-    }
-
-    fn slot_unavailable() -> Self {
-        Self {
-            status: StatusCode::CONFLICT,
-            error: "SlotUnavailable",
-            message: "the requested time is no longer available",
-        }
-    }
-
-    fn calendar_unavailable() -> Self {
-        Self {
-            status: StatusCode::SERVICE_UNAVAILABLE,
-            error: "CalendarUnavailable",
-            message: "the actor's calendar is unavailable",
-        }
-    }
+#[derive(Debug, Error)]
+enum ApiError {
+    #[error("bad request: {message}")]
+    InvalidRequest { message: &'static str },
+    #[error("the requested time is not available")]
+    Conflict,
+    #[error("the actor's calendar was unavailable")]
+    CalendarUnavailable,
 }
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        (
-            self.status,
-            Json(ErrorBody {
-                error: self.error,
-                message: self.message,
-            }),
-        )
-            .into_response()
+        self.into()
     }
 }
 

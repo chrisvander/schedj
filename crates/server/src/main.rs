@@ -7,8 +7,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let database_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://schedj:schedj@localhost:5432/schedj".to_string());
     let store = store::Store::connect(database_url).await?;
-    let (provider, actor) = Provider::from_env()?;
-    let state = AppState::new(store, provider, actor);
+    let state = AppState::new(store);
 
     let bind_address =
         std::env::var("SCHEDJ_BIND_ADDR").unwrap_or_else(|_| "127.0.0.1:3000".to_string());
